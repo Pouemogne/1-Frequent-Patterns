@@ -23,6 +23,12 @@ class Apriori:
         self.frequent_itemsets = set()
 
     def _generate_one_itemsets(self, dataset: Dataset) -> Set[Itemset]:
+
+        one_itemsets= set()
+        for transaction in Dataset.transactions:
+            for item in transaction:
+                one_itemsets.add(Itemset(frozenset([Itemset]))
+         return one_itemsets                        
         """
         Generate all 1-itemsets for the given dataset.
 
@@ -37,6 +43,15 @@ class Apriori:
     def _count_occurrences_of_itemsets(
         self, dataset: Dataset, itemsets: Set[Itemset]
     ) -> ItemsetsWithOccurrenceCounts:
+
+        ItemsetsWithOccurenceCounts={itemset: 0 for itemset in itemsets}
+        for transaction in dataset.transactions:
+            Transaction = frozenset(transaction)
+            for itemset in itemsets:
+                if itemset.issubset(Transaction):
+                    ItemsetsWithOccurenceCounts[itemset]+=1
+        
+        return ItemsetsWithOccurenceCounts
         """
         Count the occurrences of the given itemsets in the dataset.
 
@@ -53,6 +68,9 @@ class Apriori:
         self,
         itemsets_with_occurrence_counts: ItemsetsWithOccurrenceCounts,
     ) -> Set[Itemset]:
+
+        pruned_itemset = {itemset for itemset,ItemsetsWithOccurenceCounts in itemsets_with_occurence_counts.items() if ItemsetsWithOccurenceCounts>= self.min_support)
+        return pruned_itemset                  
         """
         Prune itemsets that are below the minimum support threshold.
 
@@ -67,6 +85,18 @@ class Apriori:
     def _generate_candidate_itemsets(
         self, frequent_itemsets: Set[Itemset]
     ) -> Set[Itemset]:
+
+        candidate_itemsets=set()
+        frequent_items=[itemset.items for itemset in frequent_itemsets]
+        k=max(len(itemset) for itemset in frequent_items)
+        
+        for i in range(len(frequent_items)):
+            for j in range(i+1,len(frequent_items)):
+                union_items=frequent_items[i].union(frequent_items[j])
+                if len(union_items)==k+1:
+                    candidate_itemsets.add(Itemset(union_items))
+                    
+        return candidate_itemsets
         """
         Generate length-k+1 candidate itemsets based on the given frequent itemsets. k is the length of the longest frequent itemset.
 
@@ -83,6 +113,13 @@ class Apriori:
         # TODO
 
     def fit(self, dataset: Dataset):
+        self._init_(dataset)
+        one_itemset= self._generate_one_itemset(dataset)
+        while itemset:
+            itemset_occurences_counts= self._count_occurrences_of_itemsets( dataset, itemset)
+            frequent_itemsets= self._prune_itemsets_below_min_support(itemset_occurences_counts)
+            self.frequent_itemsets.update(frequent_itemsets)
+            candidate_itemsets= self._generate_candidate_itemsets(frequent_itemsets)
         """
         Use the Apriori algorithm to find all frequent itemsets in the given dataset.
         Saves the frequent itemsets in the frequent_itemsets attribute.
