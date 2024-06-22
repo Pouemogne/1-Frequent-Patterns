@@ -32,6 +32,24 @@ class FPgrowth:
     def _generate_frequent_one_itemsets_with_occurrence_counts(
         self, dataset: Dataset
     ) -> ItemsetsWithOccurrenceCounts:
+        itemsets_with_occcurence_counts = {}
+        for transaction in dataset.transaction:
+            for item in transaction:
+                itemset= frozenset([item])
+                if itemset in itemsets_with_occurence_counts:
+                    itemsets_with_occurence_counts[itemset]+=1
+                else:
+                    itemsets_with_occurence_counts[itemset]=1
+
+        frequent_one_itemsets={
+            Itemset(itemset):count
+            for itemset,count in itemsets_with_occurence_counts.items()
+            if count>=self.min_support
+        }
+       
+        return  ItemsetsWithOccurenceCounts (frequent_one_itemsets)      
+            
+        
         """
         Generate all frequent 1-itemsets for the given dataset.
 
@@ -46,6 +64,9 @@ class FPgrowth:
     def _generate_f_list(
         self, frequent_one_itemsets: ItemsetsWithOccurrenceCounts
     ) -> List[Itemset]:
+        f_list= sorted(frequent_one_itemsets.itemsets, key=lambda x: -frequent_one_itemsets.itemsets[x])
+        return f_list
+            
         """
         Generate the f-list for the given frequent 1-itemsets.
 
@@ -60,6 +81,14 @@ class FPgrowth:
     def _sort_dataset_according_to_f_list(
         self, dataset: Dataset, f_list: List[Itemset]
     ) -> SortedDataset:
+        item_index= {itemset.items: index for index, itemset in enumerate( f_list)}
+        sorted_transaction=[]
+        for transaction in dataset.transactions:
+            sorted_transaction=sorted(transaction, key=lambda item: item_index[frosenset([item])])
+            sorted_transactions.append(sorted_transaction(sorted_transaction))
+                     
+        sorted_dataset= SortedDataset(sorted_transactions)
+        return sorted_dataset
         """
         Sort the dataset according to the given f-list.
 
@@ -73,6 +102,26 @@ class FPgrowth:
         # TODO
 
     def _construct_initial_fp_tree(self, sorted_dataset: SortedDataset) -> FPTree:
+        initial_fp_tree = FPTree()
+        root=fp_tree.root
+        for transaction in sorted_dataset.transactions:
+            current_node= root
+            for item in transaction:
+                if item in current_node.children:
+                    current_node.children[item].count +=1
+                else:
+                    new_node= FPTreeNode(item,1)
+                    currnet_node.children[item]=new_node
+                    new_node.parent=current_node
+
+                    if item in fp_tree.header_table:
+                        initial_fp_tree.header_table[item].append(new_node)
+                    else:
+                        initial_fp_tree.header_table[item]=[new_node]
+
+        return initial_fp_tree
+
+        
         """
         Construct the initial FP-tree from the given sorted dataset.
 
@@ -87,6 +136,21 @@ class FPgrowth:
     def _get_conditional_pattern_base(
         self, item: Item, fp_tree: FPTree
     ) -> ConditionalPatternBase:
+        conditional_pattern_base=[]
+
+        nodes=fp_tree.header_table.get(item,[])
+
+        for node in nodes:
+            path=[]
+            current_node=node.parent
+            while current_node and current_node.item is not None:
+                path.append(currnet_node.item)
+                current_node=current_node.parent
+            if path:
+                path.reverse()
+                conditional_pattern_base.append(cConditionalPattren(path, node.count))
+    return ConditionalPatternBase(conditional_pattern_base)
+        
         """
         Get the conditional pattern base for the given item in the FP-tree.
 
@@ -102,6 +166,25 @@ class FPgrowth:
     def _construct_conditional_fp_tree(
         self, conditional_pattern_base: ConditionalPatternBase
     ) -> FPTree:
+
+        conditional_fp_tree= FPTree()
+
+        for pattern in conditional_pattern_base.patterns:
+            path,count= pattern.path, pattern.count
+            current_node= conditional_fp_tree.root
+            for item in path: 
+                if item in current_node.children:
+                    current_node.children[item].count+=count
+                else:
+                    new_node=FPTreeNode(item,count)
+                    current_node.childre[item]=current_node
+                    if item in conditional_fp_tre.header_table:
+                        conditional_fp_tree.header_table[item].append(new_node)
+                    else:
+                        conditional_fp_tree.tree.header_table[item]
+                current_node=current_node.children[item]
+        return conditional_fp_tree
+                
         """
         Construct a conditional FP-tree from the given sorted dataset.
 
@@ -114,6 +197,11 @@ class FPgrowth:
         # TODO
 
     def fit(self, dataset: Dataset):
+        frequent_one_itemsets=self._generate_frequent_one_itemsets_with_occurrence_counts(dataset)
+        f_list= self._generate_f_list(frequent_one_itemsets)
+        sorted_dataset = self._sort_dataset_according_to_f_list(dataset, f_list)
+        fp_tree = self._construct_initial_fp_tree(sorted_dataset)
+        self.frequent_itemsets = set(frequent_one_itemsets.itemsets.keys())
         """
         Use the FP-growth algorithm to find all frequent itemsets in the given dataset.
         Saves the frequent itemsets in the frequent_itemsets attribute.
